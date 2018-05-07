@@ -4,7 +4,7 @@ package com.yahoo.bard.webservice.web.apirequest.utils
 
 import static javax.ws.rs.core.Response.Status.OK
 
-import com.yahoo.bard.webservice.data.filterbuilders.DefaultDruidFilterBuilder
+import com.yahoo.bard.webservice.data.filterbuilders.DruidOrFilterBuilder
 import com.yahoo.bard.webservice.data.time.DefaultTimeGrain
 import com.yahoo.bard.webservice.web.apirequest.DataApiRequestImpl
 
@@ -31,7 +31,7 @@ class TestingDataApiRequestImpl extends DataApiRequestImpl {
                 0,
                 Long.MAX_VALUE,
                 null,
-                new DefaultDruidFilterBuilder(),
+                new DruidOrFilterBuilder(),
                 null,
                 null
         )

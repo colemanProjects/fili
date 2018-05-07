@@ -55,7 +55,7 @@ import com.yahoo.bard.webservice.util.SimplifiedIntervalList
 import org.joda.time.DateTimeZone
 import org.joda.time.Interval
 
-public class QueryBuildingTestingResources {
+class QueryBuildingTestingResources {
 
     // Aggregatable dimensions, numbered for identification
     public Dimension d1, d2, d3, d4, d5
