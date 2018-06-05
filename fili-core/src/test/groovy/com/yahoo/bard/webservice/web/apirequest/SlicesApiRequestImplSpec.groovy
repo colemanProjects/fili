@@ -66,7 +66,7 @@ class SlicesApiRequestImplSpec extends BaseDataSourceMetadataSpec {
         builder.build(_) >> { List<List<String>> args ->
             new URI(baseUri + args[0][0])
         }
-        uriInfo.getRequestUriBuilder() >> builder
+        uriInfo.getBaseUriBuilder() >> builder
 
         Set<Map<String, String>> expected = fullDictionary.collect {
             [
@@ -156,7 +156,7 @@ class SlicesApiRequestImplSpec extends BaseDataSourceMetadataSpec {
             new URI(baseUri + args[0][0])
         }
 
-        uriInfo.getRequestUriBuilder() >> builder
+        uriInfo.getBaseUriBuilder() >> builder
 
         when:
         new SlicesApiRequestImpl(

@@ -63,6 +63,6 @@ class DebugRequestHandlerSpec extends Specification {
         1 * response.getErrorCallback(groupByQuery) >> ec
         2 * request.getFormat() >> DefaultResponseFormatType.DEBUG
         0 * next.handleRequest(_, _, _, _)
-        1 * ec.dispatch(200, DefaultResponseFormatType.DEBUG.name(), "DEBUG")
+        1 * ec.dispatch(200, (DefaultResponseFormatType.DEBUG.toString()), "DEBUG")
     }
 }

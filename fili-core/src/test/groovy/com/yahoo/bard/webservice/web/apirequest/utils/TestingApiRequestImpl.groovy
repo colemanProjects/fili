@@ -10,6 +10,6 @@ import javax.ws.rs.core.Response
 
 class TestingApiRequestImpl extends ApiRequestImpl {
     TestingApiRequestImpl() {
-        super(null, Long.MAX_VALUE, null, null, Response.status(OK))
+        super(null, Long.MAX_VALUE, null, Response.status(OK))
     }
 }

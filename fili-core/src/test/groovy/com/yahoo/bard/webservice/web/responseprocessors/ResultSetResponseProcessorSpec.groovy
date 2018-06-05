@@ -98,7 +98,12 @@ class ResultSetResponseProcessorSpec extends Specification {
         responseWriter = new JsonResponseWriter(MAPPERS)
 
         httpResponseMaker =  new HttpResponseMaker(MAPPERS, Mock(DimensionDictionary), responseWriter)
-        httpResponseChannel = new HttpResponseChannel(asyncResponse, apiRequest, httpResponseMaker);
+        httpResponseChannel = new HttpResponseChannel(
+                asyncResponse,
+                apiRequest,
+                containerRequestContext,
+                httpResponseMaker
+        );
         responseEmitter = PublishSubject.create()
         responseEmitter.subscribe(httpResponseChannel)
 

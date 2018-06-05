@@ -50,7 +50,7 @@ class TablesApiRequestImplSpec extends Specification {
                 null,  // granularity
                 "",  // format
                 "",  // per page
-                null,
+                "",  // page
                 tablesServlet
         )
 
@@ -70,7 +70,7 @@ class TablesApiRequestImplSpec extends Specification {
                 null,  // granularity
                 "",  // format
                 "",  // perPage
-                null,  // page
+                "",  // page
                 tablesServlet
         )
 

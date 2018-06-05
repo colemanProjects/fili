@@ -42,7 +42,6 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
 /**
@@ -89,7 +88,6 @@ public class SlicesServlet extends EndpointServlet {
      * @param perPage  number of values to return per page
      * @param page  the page to start from
      * @param format  The name of the output format type
-     * @param uriInfo  UriInfo of the request
      * @param containerRequestContext  The context of data provided by the Jersey container for this request
 
      * @return OK(200) else Bad Request(400) Response format:
@@ -166,7 +164,6 @@ public class SlicesServlet extends EndpointServlet {
      * Endpoint to get all the dimensions and metrics serviced by a druid slice.
      *
      * @param sliceName  Physical table name
-     * @param uriInfo  UriInfo of the request
      * @param containerRequestContext  The context of data provided by the Jersey container for this request
      *
      * @return OK(200) else Bad Request(400). Response format:
@@ -234,12 +231,13 @@ public class SlicesServlet extends EndpointServlet {
      * Get the URL of the slice.
      *
      * @param slice  The name of the slice
-     * @param uriBuilder  URI uriBuilder for the request
+     * @param uriInfo  URI Info for the request
      *
      * @return The absolute URL for the slice
      */
-    public static String getSliceDetailUrl(String slice, UriBuilder uriBuilder) {
-        return uriBuilder.path(SlicesServlet.class)
+    public static String getSliceDetailUrl(String slice, UriInfo uriInfo) {
+        return uriInfo.getBaseUriBuilder()
+                .path(SlicesServlet.class)
                 .path(SlicesServlet.class, "getSliceBySliceName")
                 .build(slice)
                 .toASCIIString();

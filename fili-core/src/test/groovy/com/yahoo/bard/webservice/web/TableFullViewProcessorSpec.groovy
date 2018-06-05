@@ -49,7 +49,7 @@ class TableFullViewProcessorSpec extends Specification {
                 null,  // granularity
                 "",  // format
                 "",  // perPage
-                null,  // page
+                "",  // page
                 tablesServlet
         )
         Set<LogicalTable> logicalTableSet = tablesApiRequestImpl.getTables();
