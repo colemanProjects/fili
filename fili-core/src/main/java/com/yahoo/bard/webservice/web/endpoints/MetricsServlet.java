@@ -12,10 +12,10 @@ import com.yahoo.bard.webservice.logging.RequestLog;
 import com.yahoo.bard.webservice.logging.blocks.MetricRequest;
 import com.yahoo.bard.webservice.table.LogicalTableDictionary;
 import com.yahoo.bard.webservice.web.ErrorMessageFormat;
-import com.yahoo.bard.webservice.web.apirequest.MetricsApiRequest;
 import com.yahoo.bard.webservice.web.RequestMapper;
 import com.yahoo.bard.webservice.web.RequestValidationException;
 import com.yahoo.bard.webservice.web.ResponseFormatResolver;
+import com.yahoo.bard.webservice.web.apirequest.MetricsApiRequest;
 import com.yahoo.bard.webservice.web.apirequest.MetricsApiRequestImpl;
 
 import com.codahale.metrics.annotation.Timed;
@@ -93,7 +93,6 @@ public class MetricsServlet extends EndpointServlet {
      * @param perPage  number of values to return per page
      * @param page  the page to start from
      * @param format  The name of the output format type
-     * @param uriInfo  UriInfo of the request
      * @param containerRequestContext  The context of data provided by the Jersey container for this request
      *
      * @return The list of logical metrics
@@ -111,9 +110,9 @@ public class MetricsServlet extends EndpointServlet {
             @DefaultValue("") @NotNull @QueryParam("perPage") String perPage,
             @DefaultValue("") @NotNull @QueryParam("page") String page,
             @QueryParam("format") String format,
-            @Context UriInfo uriInfo,
             @Context final ContainerRequestContext containerRequestContext
     ) {
+        UriInfo uriInfo = containerRequestContext.getUriInfo();
         Supplier<Response> responseSender;
         try {
             RequestLog.startTiming(this);
@@ -124,8 +123,7 @@ public class MetricsServlet extends EndpointServlet {
                     formatResolver.apply(format, containerRequestContext),
                     perPage,
                     page,
-                    metricDictionary,
-                    uriInfo
+                    metricDictionary
             );
 
             if (requestMapper != null) {
@@ -133,11 +131,13 @@ public class MetricsServlet extends EndpointServlet {
             }
 
             Stream<Map<String, String>> result = apiRequest.getPage(
-                    getLogicalMetricListSummaryView(apiRequest.getMetrics(), uriInfo)
+                    getLogicalMetricListSummaryView(apiRequest.getMetrics(), uriInfo),
+                    uriInfo
             );
 
             Response response = formatResponse(
                     apiRequest,
+                    containerRequestContext,
                     result,
                     UPDATED_METADATA_COLLECTION_NAMES.isOn() ? "metrics" : "rows",
                     null
@@ -166,7 +166,6 @@ public class MetricsServlet extends EndpointServlet {
      * Get the details of a specific logical metric.
      *
      * @param metricName  Logical metric name
-     * @param uriInfo  UriInfo of the request
      * @param containerRequestContext  The context of data provided by the Jersey container for this request
      *
      * @return The logical metric
@@ -178,9 +177,9 @@ public class MetricsServlet extends EndpointServlet {
     @Path("/{metricName}")
     public Response getMetric(
             @PathParam("metricName") String metricName,
-            @Context UriInfo uriInfo,
             @Context final ContainerRequestContext containerRequestContext
     ) {
+        UriInfo uriInfo = containerRequestContext.getUriInfo();
         Supplier<Response> responseSender;
         try {
             RequestLog.startTiming(this);
@@ -191,8 +190,7 @@ public class MetricsServlet extends EndpointServlet {
                     null,
                     "",
                     "",
-                    metricDictionary,
-                    uriInfo
+                    metricDictionary
             );
 
             if (requestMapper != null) {

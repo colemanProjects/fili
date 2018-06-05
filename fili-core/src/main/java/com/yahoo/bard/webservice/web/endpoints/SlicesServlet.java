@@ -42,6 +42,7 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
 /**
@@ -109,9 +110,9 @@ public class SlicesServlet extends EndpointServlet {
             @DefaultValue("") @NotNull @QueryParam("perPage") String perPage,
             @DefaultValue("") @NotNull @QueryParam("page") String page,
             @QueryParam("format") String format,
-            @Context UriInfo uriInfo,
-            @Context final ContainerRequestContext containerRequestContext
+            @Context ContainerRequestContext containerRequestContext
     ) {
+        UriInfo uriInfo = containerRequestContext.getUriInfo();
         Supplier<Response> responseSender;
         try {
             RequestLog.startTiming(this);
@@ -131,10 +132,11 @@ public class SlicesServlet extends EndpointServlet {
                 apiRequest = (SlicesApiRequestImpl) requestMapper.apply(apiRequest, containerRequestContext);
             }
 
-            Stream<Map<String, String>> result = apiRequest.getPage(apiRequest.getSlices());
+            Stream<Map<String, String>> result = apiRequest.getPage(apiRequest.getSlices(), uriInfo);
 
             Response response = formatResponse(
                     apiRequest,
+                    containerRequestContext,
                     result,
                     UPDATED_METADATA_COLLECTION_NAMES.isOn() ? "slices" : "rows",
                     null
@@ -191,7 +193,6 @@ public class SlicesServlet extends EndpointServlet {
     @Path("/{sliceName}")
     public Response getSliceBySliceName(
             @PathParam("sliceName") String sliceName,
-            @Context UriInfo uriInfo,
             @Context final ContainerRequestContext containerRequestContext
     ) {
         Supplier<Response> responseSender;
@@ -206,7 +207,7 @@ public class SlicesServlet extends EndpointServlet {
                     "",
                     physicalTableDictionary,
                     dataSourceMetadataService,
-                    uriInfo
+                    containerRequestContext.getUriInfo()
             );
 
             if (requestMapper != null) {
@@ -233,13 +234,12 @@ public class SlicesServlet extends EndpointServlet {
      * Get the URL of the slice.
      *
      * @param slice  The name of the slice
-     * @param uriInfo  URI Info for the request
+     * @param uriBuilder  URI uriBuilder for the request
      *
      * @return The absolute URL for the slice
      */
-    public static String getSliceDetailUrl(String slice, UriInfo uriInfo) {
-        return uriInfo.getBaseUriBuilder()
-                .path(SlicesServlet.class)
+    public static String getSliceDetailUrl(String slice, UriBuilder uriBuilder) {
+        return uriBuilder.path(SlicesServlet.class)
                 .path(SlicesServlet.class, "getSliceBySliceName")
                 .build(slice)
                 .toASCIIString();

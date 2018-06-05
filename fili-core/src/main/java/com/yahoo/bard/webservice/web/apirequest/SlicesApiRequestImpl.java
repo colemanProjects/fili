@@ -30,6 +30,7 @@ import java.util.SortedMap;
 import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
 /**
@@ -72,8 +73,8 @@ public class SlicesApiRequestImpl extends ApiRequestImpl implements SlicesApiReq
             DataSourceMetadataService dataSourceMetadataService,
             UriInfo uriInfo
     ) throws BadApiRequestException {
-        super(format, perPage, page, uriInfo);
-        this.slices = generateSlices(tableDictionary, uriInfo);
+        super(format, perPage, page);
+        this.slices = generateSlices(tableDictionary, uriInfo.getRequestUriBuilder());
 
         this.slice = sliceName != null ? generateSlice(
                 sliceName,
@@ -94,12 +95,12 @@ public class SlicesApiRequestImpl extends ApiRequestImpl implements SlicesApiReq
      * Generates the set of all available slices.
      *
      * @param tableDictionary  Physical table dictionary contains the map of valid table names to table objects.
-     * @param uriInfo  The URI of the request object.
+     * @param uriBuilder  The URI builder for the request object.
      *
      * @return Set of slice objects.
      * @throws BadApiRequestException if the physical table dictionary is empty.
      */
-    protected Set<Map<String, String>> generateSlices(PhysicalTableDictionary tableDictionary, UriInfo uriInfo)
+    protected Set<Map<String, String>> generateSlices(PhysicalTableDictionary tableDictionary, UriBuilder uriBuilder)
             throws BadApiRequestException {
         if (tableDictionary.isEmpty()) {
             String msg = EMPTY_DICTIONARY.logFormat("Slices cannot be found. Physical Table");
@@ -115,7 +116,7 @@ public class SlicesApiRequestImpl extends ApiRequestImpl implements SlicesApiReq
                                     "timeGrain",
                                     e.getValue().getSchema().getTimeGrain().getName().toLowerCase(Locale.ENGLISH)
                             );
-                            res.put("uri", SlicesServlet.getSliceDetailUrl(e.getKey(), uriInfo));
+                            res.put("uri", SlicesServlet.getSliceDetailUrl(e.getKey(), uriBuilder));
                             return res;
                         }
                 ).collect(Collectors.toCollection(LinkedHashSet::new));

@@ -46,11 +46,10 @@ class TablesApiRequestImplSpec extends Specification {
 
         when:
         TablesApiRequestImpl tablesApiRequestImpl = new TablesApiRequestImpl(
-                null,
-                null,
-                null,
-                "",
-                "",
+                null,  // tableName
+                null,  // granularity
+                "",  // format
+                "",  // per page
                 null,
                 tablesServlet
         )
@@ -68,11 +67,10 @@ class TablesApiRequestImplSpec extends Specification {
         when:
         TablesApiRequestImpl tablesApiRequestImpl = new TablesApiRequestImpl(
                 name,
-                null,
-                null,
-                "",
-                "",
-                null,
+                null,  // granularity
+                "",  // format
+                "",  // perPage
+                null,  // page
                 tablesServlet
         )
 
@@ -93,10 +91,9 @@ class TablesApiRequestImplSpec extends Specification {
         TablesApiRequestImpl tablesApiRequestImpl = new TablesApiRequestImpl(
                 name,
                 "day",
-                null,
-                "",
-                "",
-                null,
+                null,  // format
+                "",  // perPage
+                "", // page
                 tablesServlet
         )
 
@@ -112,10 +109,9 @@ class TablesApiRequestImplSpec extends Specification {
         new TablesApiRequestImpl(
                 name,
                 grain,
-                null,
-                "",
-                "",
-                null,
+                null,  // format
+                "",  // perPage
+                "",  // page
                 tablesServlet
         )
 

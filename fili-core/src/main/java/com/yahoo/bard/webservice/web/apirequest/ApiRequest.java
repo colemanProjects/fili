@@ -51,15 +51,8 @@ public interface ApiRequest {
      Optional<PaginationParameters> getPaginationParameters();
 
     /**
-     * Get the uri info.
-     *
-     * @return The uri info of this API request
-     */
-     UriInfo getUriInfo();
-
-    /**
      * Get the pagination object associated with this request.
-     * This object has valid contents after a call to {@link #getPage}
+     * This object has valid contents after a call to {@link #getPage(Pagination)}
      *
      * @return The pagination object.
      */
@@ -93,15 +86,16 @@ public interface ApiRequest {
      *
      * @param <T>  The type of the collection elements
      * @param data  The data to be paginated.
+     * @param uriInfo  The uri info used to build page links
      *
      * @return A stream corresponding to the requested page.
      *
      * @deprecated Pagination is moving to a Stream and pushing creation of the page to a more general
-     * method ({@link #getPage(Pagination)}) to allow for more flexibility
+     * method ({@link #getPage(Pagination, UriInfo)}) to allow for more flexibility
      * in how pagination is done.
      */
     @Deprecated
-     <T> Stream<T> getPage(Collection<T> data);
+     <T> Stream<T> getPage(Collection<T> data, UriInfo uriInfo);
 
     /**
      * Add links to the response builder and return a stream with the requested page from the raw data.
@@ -111,5 +105,5 @@ public interface ApiRequest {
      *
      * @return A stream corresponding to the requested page.
      */
-     <T> Stream<T> getPage(Pagination<T> pagination);
+     <T> Stream<T> getPage(Pagination<T> pagination, UriInfo uriInfo);
 }

@@ -132,7 +132,7 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
         if (format != null && format.toLowerCase(Locale.ENGLISH).equals("fullview")) {
             return getTablesFullView(perPage, page, uriInfo, containerRequestContext);
         } else {
-            return getTable(null, perPage, page, format, uriInfo, containerRequestContext);
+            return getTable(null, perPage, page, format, containerRequestContext);
         }
     }
 
@@ -144,7 +144,6 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
      * @param perPage  number of values to return per page
      * @param page  the page to start from
      * @param format  The name of the output format type
-     * @param uriInfo  UriInfo of the request
      * @param containerRequestContext  The context of data provided by the Jersey container for this request
      *
      * @return The list of grain-specific logical tables
@@ -164,9 +163,9 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
             @DefaultValue("") @NotNull @QueryParam("perPage") String perPage,
             @DefaultValue("") @NotNull @QueryParam("page") String page,
             @QueryParam("format") String format,
-            @Context UriInfo uriInfo,
             @Context final ContainerRequestContext containerRequestContext
     ) {
+        UriInfo uriInfo = containerRequestContext.getUriInfo();
         Supplier<Response> responseSender;
         try {
             RequestLog.startTiming(this);
@@ -178,7 +177,6 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
                     formatResolver.apply(format, containerRequestContext),
                     perPage,
                     page,
-                    uriInfo,
                     this
             );
 
@@ -190,11 +188,11 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
             }
 
             Stream<Map<String, String>> result = tablesApiRequestImpl.getPage(
-                    getLogicalTableListSummaryView(tablesApiRequestImpl.getTables(), uriInfo)
-            );
+                    getLogicalTableListSummaryView(tablesApiRequestImpl.getTables(), uriInfo), uriInfo);
 
             Response response = formatResponse(
                     tablesApiRequestImpl,
+                    containerRequestContext,
                     result,
                     UPDATED_METADATA_COLLECTION_NAMES.isOn() ? "tables" : "rows",
                     null
@@ -219,12 +217,11 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
      * Get <b>unconstrained</b> logical table details for a grain-specific logical table.
      * <p>
      * See {@link
-     * #getTableByGrainAndConstraint(String, String, List, String, String, String, UriInfo, ContainerRequestContext)}
+     * #getTableByGrainAndConstraint(String, String, List, String, String, String, ContainerRequestContext)}
      * for getting <b>constrained</b> logical table details
      *
      * @param tableName  Logical table name (part of the logical table ID)
      * @param grain  Logical table grain (part of the logical table ID)
-     * @param uriInfo  UriInfo of the request
      * @param containerRequestContext  The context of data provided by the Jersey container for this request
      *
      * @return The grain-specific logical table
@@ -239,9 +236,9 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
     public Response getTableByGrain(
             @PathParam("tableName") String tableName,
             @PathParam("granularity") String grain,
-            @Context UriInfo uriInfo,
             @Context final ContainerRequestContext containerRequestContext
     ) {
+        UriInfo uriInfo = containerRequestContext.getUriInfo();
         Supplier<Response> responseSender;
         try {
             RequestLog.startTiming(this);
@@ -253,7 +250,6 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
                     null,
                     "",
                     "",
-                    uriInfo,
                     this
             );
 
@@ -311,7 +307,6 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
      * @param metrics  Requested list of metrics (e.g. myMetric)
      * @param intervals  Requested list of intervals. This is a required
      * @param filters  Requested list of filters (e.g. dim3|id-in[foo,bar])
-     * @param uriInfo  UriInfo of the request
      * @param containerRequestContext  The context of data provided by the Jersey container for this request
      *
      * @return The grain-specific logical table
@@ -329,7 +324,6 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
             @QueryParam("metrics") String metrics,
             @QueryParam("dateTime") String intervals,
             @QueryParam("filters") String filters,
-            @Context UriInfo uriInfo,
             @Context final ContainerRequestContext containerRequestContext
     ) {
         Supplier<Response> responseSender;
@@ -343,7 +337,6 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
                     null,
                     "",
                     "",
-                    uriInfo,
                     this,
                     dimensions,
                     metrics,
@@ -359,7 +352,10 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
                 );
             }
 
-            Map<String, Object> result = getLogicalTableFullView(tablesApiRequest, uriInfo);
+            Map<String, Object> result = getLogicalTableFullView(
+                    tablesApiRequest,
+                    containerRequestContext.getUriInfo()
+            );
             String output = objectMappers.getMapper().writeValueAsString(result);
             LOG.debug("Tables Endpoint Response: {}", output);
             responseSender = () ->  Response.status(OK).entity(output).build();
@@ -409,7 +405,6 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
                     null,
                     perPage,
                     page,
-                    uriInfo,
                     this
             );
 
@@ -423,9 +418,16 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
             TableFullViewProcessor fullViewProcessor = new TableFullViewProcessor();
 
             Stream<TableView> paginatedResult = tablesApiRequestImpl.getPage(
-                    fullViewProcessor.formatTables(tablesApiRequestImpl.getTables(), uriInfo)
+                    fullViewProcessor.formatTables(tablesApiRequestImpl.getTables(), uriInfo),
+                    uriInfo
             );
-            Response response = formatResponse(tablesApiRequestImpl, paginatedResult, "tables", null);
+            Response response = formatResponse(
+                    tablesApiRequestImpl,
+                    containerRequestContext,
+                    paginatedResult,
+                    "tables",
+                    null
+            );
 
             LOG.debug("Tables Endpoint Response: {}", response.getEntity());
             responseSender = () -> response;

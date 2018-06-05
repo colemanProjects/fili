@@ -1,20 +1,10 @@
-// Copyright 2016 Yahoo Inc.
+// Copyright 2017 Yahoo Inc.
 // Licensed under the terms of the Apache license. Please see LICENSE.md file distributed with this work for terms.
 package com.yahoo.bard.webservice.web;
 
-import java.util.Locale;
+public interface ResponseFormatType {
 
-/**
- * Response format type.
- */
-public enum ResponseFormatType {
-    JSON,
-    CSV,
-    DEBUG,
-    JSONAPI;
+    boolean accepts(String responseFormatValue);
 
-    @Override
-    public String toString() {
-        return name().toLowerCase(Locale.ENGLISH);
-    }
+    boolean accepts(ResponseFormatType formatType);
 }

@@ -14,7 +14,7 @@ import java.util.Optional;
  * format type in the ApiRequest. It's initialized with three format-writer mapping: CSV, Json and JsonApi.
  */
 public class FiliResponseWriterSelector implements ResponseWriterSelector {
-    private final Map<ResponseFormatType, ResponseWriter> writers;
+    private final Map<DefaultResponseFormatType, ResponseWriter> writers;
 
     /**
      * Constructor for default writer selector. Initialize format to writer mapping.
@@ -29,9 +29,9 @@ public class FiliResponseWriterSelector implements ResponseWriterSelector {
             JsonApiResponseWriter jsonApiResponseWriter
     ) {
         writers = new HashMap<>();
-        writers.put(ResponseFormatType.CSV, csvResponseWriter);
-        writers.put(ResponseFormatType.JSON, jsonResponseWriter);
-        writers.put(ResponseFormatType.JSONAPI, jsonApiResponseWriter);
+        writers.put(DefaultResponseFormatType.CSV, csvResponseWriter);
+        writers.put(DefaultResponseFormatType.JSON, jsonResponseWriter);
+        writers.put(DefaultResponseFormatType.JSONAPI, jsonApiResponseWriter);
     }
 
     /**
@@ -44,7 +44,7 @@ public class FiliResponseWriterSelector implements ResponseWriterSelector {
     public Optional<ResponseWriter> select(ApiRequest request) {
         ResponseFormatType format = request.getFormat();
         if (format == null) {
-            format = ResponseFormatType.JSON;
+            format = DefaultResponseFormatType.JSON;
         }
         return Optional.ofNullable(writers.get(format));
     }
@@ -55,7 +55,7 @@ public class FiliResponseWriterSelector implements ResponseWriterSelector {
      * @param type  Custom format type.
      * @param writer Writer which should be used to do serialization with the type.
      */
-    public void addWriter(ResponseFormatType type, ResponseWriter writer) {
+    public void addWriter(DefaultResponseFormatType type, ResponseWriter writer) {
         writers.put(type, writer);
     }
 }

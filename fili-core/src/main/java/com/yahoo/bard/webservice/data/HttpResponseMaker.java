@@ -2,6 +2,8 @@
 // Licensed under the terms of the Apache license. Please see LICENSE.md file distributed with this work for terms.
 package com.yahoo.bard.webservice.data;
 
+import static com.yahoo.bard.webservice.web.DefaultResponseFormatType.CSV;
+import static com.yahoo.bard.webservice.web.DefaultResponseFormatType.JSON;
 import static com.yahoo.bard.webservice.web.handlers.PartialDataRequestHandler.getPartialIntervalsWithDefault;
 import static com.yahoo.bard.webservice.web.handlers.VolatileDataRequestHandler.getVolatileIntervalsWithDefault;
 import static com.yahoo.bard.webservice.web.responseprocessors.ResponseContextKeys.API_METRIC_COLUMN_NAMES;
@@ -17,14 +19,14 @@ import com.yahoo.bard.webservice.data.dimension.DimensionField;
 import com.yahoo.bard.webservice.druid.model.query.DruidQuery;
 import com.yahoo.bard.webservice.util.Pagination;
 import com.yahoo.bard.webservice.util.SimplifiedIntervalList;
-import com.yahoo.bard.webservice.web.apirequest.ApiRequest;
 import com.yahoo.bard.webservice.web.PreResponse;
 import com.yahoo.bard.webservice.web.ResponseData;
 import com.yahoo.bard.webservice.web.ResponseFormatType;
 import com.yahoo.bard.webservice.web.ResponseWriter;
+import com.yahoo.bard.webservice.web.apirequest.ApiRequest;
 import com.yahoo.bard.webservice.web.handlers.RequestHandlerUtils;
 import com.yahoo.bard.webservice.web.responseprocessors.ResponseContext;
-import com.yahoo.bard.webservice.web.util.ResponseFormat;
+import com.yahoo.bard.webservice.web.util.ResponseUtils;
 
 import java.net.URI;
 import java.util.Collections;
@@ -35,6 +37,7 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
@@ -50,6 +53,7 @@ public class HttpResponseMaker {
     protected final ObjectMappersSuite objectMappers;
     protected final DimensionDictionary dimensionDictionary;
     protected final ResponseWriter responseWriter;
+    protected final ResponseUtils responseUtils;
 
     /**
      * Class constructor.
@@ -66,6 +70,7 @@ public class HttpResponseMaker {
         this.objectMappers = objectMappers;
         this.dimensionDictionary = dimensionDictionary;
         this.responseWriter = responseWriter;
+        responseUtils = new ResponseUtils();
     }
 
     /**
@@ -73,17 +78,20 @@ public class HttpResponseMaker {
      *
      * @param preResponse  PreResponse object which contains result set, response context and headers
      * @param apiRequest  ApiRequest object which contains request related information
+     * @param containerRequestContext The context of the incoming request
      *
      * @return Completely built response with headers and result set
      */
     public javax.ws.rs.core.Response buildResponse(
             PreResponse preResponse,
-            ApiRequest apiRequest
+            ApiRequest apiRequest,
+            ContainerRequestContext containerRequestContext
     ) {
         ResponseBuilder rspBuilder = createResponseBuilder(
                 preResponse.getResultSet(),
                 preResponse.getResponseContext(),
-                apiRequest
+                apiRequest,
+                containerRequestContext
         );
 
         @SuppressWarnings("unchecked")
@@ -104,13 +112,15 @@ public class HttpResponseMaker {
      * @param resultSet  The result set being processed
      * @param responseContext  A meta data container for the state gathered by the web container
      * @param apiRequest  ApiRequest object which contains request related information
+     * @param containerRequestContext The context of the container request being processed
      *
      * @return Build response with requested format and associated meta data info.
      */
     private ResponseBuilder createResponseBuilder(
             ResultSet resultSet,
             ResponseContext responseContext,
-            ApiRequest apiRequest
+            ApiRequest apiRequest,
+            ContainerRequestContext containerRequestContext
     ) {
         @SuppressWarnings("unchecked")
         ResponseFormatType responseFormatType = apiRequest.getFormat();
@@ -125,7 +135,7 @@ public class HttpResponseMaker {
         // Add headers for content type
         // default response format is JSON
         if (responseFormatType == null) {
-            responseFormatType = ResponseFormatType.JSON;
+            responseFormatType = JSON;
         }
 
         LinkedHashMap<String, LinkedHashSet<DimensionField>> dimensionToDimensionFieldMap =
@@ -162,20 +172,16 @@ public class HttpResponseMaker {
         // pass stream handler as response
         ResponseBuilder rspBuilder = javax.ws.rs.core.Response.ok(stream);
 
-        // build response
-        switch (responseFormatType) {
-            case CSV:
-                return rspBuilder
-                        .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=utf-8")
-                        .header(
-                                HttpHeaders.CONTENT_DISPOSITION,
-                                ResponseFormat.getCsvContentDispositionValue(apiRequest.getUriInfo())
-                        );
-            case JSON:
-                // Fall-through: Default is JSON
-            default:
-                return rspBuilder
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON + "; charset=utf-8");
+        if (CSV.accepts(responseFormatType)) {
+            return rspBuilder
+                    .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=utf-8")
+                    .header(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            responseUtils.getCsvContentDispositionValue(containerRequestContext)
+                    );
+        } else {
+            return rspBuilder
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON + "; charset=utf-8");
         }
     }
 

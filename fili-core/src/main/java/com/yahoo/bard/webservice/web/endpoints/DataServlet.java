@@ -393,7 +393,6 @@ public class DataServlet extends CORSPreflightServlet implements BardConfigResou
                         asyncAfter,
                         perPage,
                         page,
-                        uriInfo,
                         this
                 );
             }
@@ -482,7 +481,7 @@ public class DataServlet extends CORSPreflightServlet implements BardConfigResou
             AsyncResponse asyncResponse,
             HttpResponseMaker httpResponseMaker
     ) {
-        UriInfo uriInfo = apiRequest.getUriInfo();
+        UriInfo uriInfo = containerRequestContext.getUriInfo();
         long asyncAfter = apiRequest.getAsyncAfter();
         JobRow jobMetadata = jobRowBuilder.buildJobRow(uriInfo, containerRequestContext);
 
@@ -522,6 +521,7 @@ public class DataServlet extends CORSPreflightServlet implements BardConfigResou
                 new HttpResponseChannel(
                         asyncResponse,
                         apiRequest,
+                        containerRequestContext,
                         httpResponseMaker
                 )
         );

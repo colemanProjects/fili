@@ -24,10 +24,10 @@ import com.yahoo.bard.webservice.data.dimension.Dimension;
 import com.yahoo.bard.webservice.data.dimension.DimensionDictionary;
 import com.yahoo.bard.webservice.data.metric.LogicalMetric;
 import com.yahoo.bard.webservice.data.metric.MetricDictionary;
-import com.yahoo.bard.webservice.data.time.GranularityParser;
-import com.yahoo.bard.webservice.data.time.TimeGrain;
 import com.yahoo.bard.webservice.data.time.AllGranularity;
 import com.yahoo.bard.webservice.data.time.Granularity;
+import com.yahoo.bard.webservice.data.time.GranularityParser;
+import com.yahoo.bard.webservice.data.time.TimeGrain;
 import com.yahoo.bard.webservice.logging.RequestLog;
 import com.yahoo.bard.webservice.logging.TimedPhase;
 import com.yahoo.bard.webservice.table.LogicalTable;
@@ -40,6 +40,7 @@ import com.yahoo.bard.webservice.web.ApiFilter;
 import com.yahoo.bard.webservice.web.BadApiRequestException;
 import com.yahoo.bard.webservice.web.BadFilterException;
 import com.yahoo.bard.webservice.web.BadPaginationException;
+import com.yahoo.bard.webservice.web.DefaultResponseFormatType;
 import com.yahoo.bard.webservice.web.ErrorMessageFormat;
 import com.yahoo.bard.webservice.web.FilterOperation;
 import com.yahoo.bard.webservice.web.ResponseFormatType;
@@ -99,7 +100,6 @@ public abstract class ApiRequestImpl implements ApiRequest {
 
     protected final ResponseFormatType format;
     protected final Optional<PaginationParameters> paginationParameters;
-    protected final UriInfo uriInfo;
     protected final Response.ResponseBuilder builder;
     protected Pagination<?> pagination;
     protected final long asyncAfter;
@@ -114,7 +114,6 @@ public abstract class ApiRequestImpl implements ApiRequest {
      * positive integer. If not present, must be the empty string.
      * @param page  desired page of results. If present in the original request, must be a positive integer. If not
      * present, must be the empty string.
-     * @param uriInfo  The URI of the request object.
      *
      * @throws BadApiRequestException if pagination parameters in the API request are not positive integers.
      */
@@ -122,10 +121,8 @@ public abstract class ApiRequestImpl implements ApiRequest {
             String format,
             String asyncAfter,
             @NotNull String perPage,
-            @NotNull String page,
-            UriInfo uriInfo
+            @NotNull String page
     ) throws BadApiRequestException {
-        this.uriInfo = uriInfo;
         this.format = generateAcceptFormat(format);
         this.paginationParameters = generatePaginationParameters(perPage, page);
         this.builder = Response.status(Response.Status.OK);
@@ -145,17 +142,15 @@ public abstract class ApiRequestImpl implements ApiRequest {
      * positive integer. If not present, must be the empty string.
      * @param page  desired page of results. If present in the original request, must be a positive integer. If not
      * present, must be the empty string.
-     * @param uriInfo  The URI of the request object.
      *
      * @throws BadApiRequestException if pagination parameters in the API request are not positive integers.
      */
     public ApiRequestImpl(
             String format,
             @NotNull String perPage,
-            @NotNull String page,
-            UriInfo uriInfo
+            @NotNull String page
     ) throws BadApiRequestException {
-        this(format, SYNCHRONOUS_REQUEST_FLAG, perPage, page, uriInfo);
+        this(format, SYNCHRONOUS_REQUEST_FLAG, perPage, page);
     }
 
     /**
@@ -164,20 +159,17 @@ public abstract class ApiRequestImpl implements ApiRequest {
      * @param format  The format of the response
      * @param asyncAfter  How long the user is willing to wait for a synchronous request, in milliseconds
      * @param paginationParameters  The parameters used to describe pagination
-     * @param uriInfo  The uri details
      * @param builder  The response builder for this request
      */
     protected ApiRequestImpl(
             ResponseFormatType format,
             long asyncAfter,
             Optional<PaginationParameters> paginationParameters,
-            UriInfo uriInfo,
             Response.ResponseBuilder builder
     ) {
         this.format = format;
         this.asyncAfter = asyncAfter;
         this.paginationParameters = paginationParameters;
-        this.uriInfo = uriInfo;
         this.builder = builder;
     }
 
@@ -627,11 +619,11 @@ public abstract class ApiRequestImpl implements ApiRequest {
      * @return Response format type (CSV or JSON).
      * @throws BadApiRequestException if the requested format is not found.
      */
-    protected ResponseFormatType generateAcceptFormat(String format) throws BadApiRequestException {
+    protected DefaultResponseFormatType generateAcceptFormat(String format) throws BadApiRequestException {
         try {
-            return format == null ?
-                    ResponseFormatType.JSON :
-                    ResponseFormatType.valueOf(format.toUpperCase(Locale.ENGLISH));
+            return format == null || "".equals(format) ?
+                    DefaultResponseFormatType.JSON :
+                    DefaultResponseFormatType.valueOf(format.toUpperCase(Locale.ENGLISH));
         } catch (IllegalArgumentException e) {
             LOG.error(ACCEPT_FORMAT_INVALID.logFormat(format), e);
             throw new BadApiRequestException(ACCEPT_FORMAT_INVALID.format(format));
@@ -698,11 +690,6 @@ public abstract class ApiRequestImpl implements ApiRequest {
     }
 
     @Override
-    public UriInfo getUriInfo() {
-        return uriInfo;
-    }
-
-    @Override
     public Pagination<?> getPagination() {
         return pagination;
     }
@@ -726,39 +713,33 @@ public abstract class ApiRequestImpl implements ApiRequest {
      * Add page links to the header of the response builder.
      *
      * @param link  The type of the link to add.
+     * @param uriInfo The uri info for building page links
      * @param pages  The paginated set of results containing the pages being linked to.
      */
-    protected void addPageLink(PaginationLink link, Pagination<?> pages) {
-        link.getPage(pages).ifPresent(page -> addPageLink(link, page));
+    protected void addPageLink(PaginationLink link, UriInfo uriInfo, Pagination<?> pages) {
+        link.getPage(pages).ifPresent(page -> addPageLink(link, uriInfo, page));
     }
 
     /**
      * Add page links to the header of the response builder.
      *
      * @param link  The type of the link to add.
+     * @param uriInfo The uri info for building page links
      * @param pageNumber  Number of the page to add the link for.
      */
-    protected void addPageLink(PaginationLink link, int pageNumber) {
+    protected void addPageLink(PaginationLink link, UriInfo uriInfo, int pageNumber) {
         UriBuilder uriBuilder = uriInfo.getRequestUriBuilder().replaceQueryParam("page", pageNumber);
         builder.header(HttpHeaders.LINK, Link.fromUriBuilder(uriBuilder).rel(link.getHeaderName()).build());
     }
 
-    /**
-     * Add links to the response builder and return a stream with the requested page from the raw data.
-     *
-     * @param <T>  The type of the collection elements
-     * @param data  The data to be paginated.
-     *
-     * @return A stream corresponding to the requested page.
-     *
-     * @deprecated Pagination is moving to a Stream and pushing creation of the page to a more general
-     * method ({@link #getPage(Pagination)}) to allow for more flexibility
-     * in how pagination is done.
-     */
+
     @Deprecated
     @Override
-    public <T> Stream<T> getPage(Collection<T> data) {
-        return getPage(new AllPagesPagination<>(data, getPaginationParameters().orElse(getDefaultPagination())));
+    public <T> Stream<T> getPage(Collection<T> data, UriInfo uriInfo) {
+        return getPage(
+                new AllPagesPagination<>(data, getPaginationParameters().orElse(getDefaultPagination())),
+                uriInfo
+        );
     }
 
     /**
@@ -770,10 +751,10 @@ public abstract class ApiRequestImpl implements ApiRequest {
      * @return A stream corresponding to the requested page.
      */
     @Override
-    public <T> Stream<T> getPage(Pagination<T> pagination) {
+    public <T> Stream<T> getPage(Pagination<T> pagination, UriInfo uriInfo) {
         this.pagination = pagination;
 
-        Arrays.stream(PaginationLink.values()).forEachOrdered(link -> addPageLink(link, pagination));
+        Arrays.stream(PaginationLink.values()).forEachOrdered(link -> addPageLink(link, uriInfo, pagination));
 
         return pagination.getPageOfData().stream();
     }

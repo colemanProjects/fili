@@ -133,8 +133,7 @@ public class DimensionsServlet extends EndpointServlet {
                     formatResolver.apply(format, containerRequestContext),
                     perPage,
                     page,
-                    dimensionDictionary,
-                    uriInfo
+                    dimensionDictionary
             );
 
             if (requestMapper != null) {
@@ -142,11 +141,13 @@ public class DimensionsServlet extends EndpointServlet {
             }
 
             Stream<Map<String, Object>> result = apiRequest.getPage(
-                    getDimensionListSummaryView(apiRequest.getDimensions(), uriInfo)
+                    getDimensionListSummaryView(apiRequest.getDimensions(), uriInfo),
+                    uriInfo
             );
 
             Response response = formatResponse(
                     apiRequest,
+                    containerRequestContext,
                     result,
                     UPDATED_METADATA_COLLECTION_NAMES.isOn() ? "dimensions" : "rows",
                     null
@@ -197,8 +198,7 @@ public class DimensionsServlet extends EndpointServlet {
                     null,
                     "",
                     "",
-                    dimensionDictionary,
-                    uriInfo
+                    dimensionDictionary
             );
 
             if (requestMapper != null) {
@@ -285,8 +285,7 @@ public class DimensionsServlet extends EndpointServlet {
                     formatResolver.apply(format, containerRequestContext),
                     perPage,
                     page,
-                    dimensionDictionary,
-                    uriInfo
+                    dimensionDictionary
             );
 
             if (requestMapper != null) {
@@ -305,7 +304,7 @@ public class DimensionsServlet extends EndpointServlet {
                             paginationParameters
                     );
 
-            Stream<Map<String, String>> rows = apiRequest.getPage(pagedRows)
+            Stream<Map<String, String>> rows = apiRequest.getPage(pagedRows, uriInfo)
                     .map(DimensionRow::entrySet)
                     .map(Set::stream)
                     .map(stream ->
@@ -319,6 +318,7 @@ public class DimensionsServlet extends EndpointServlet {
 
             Response response = formatResponse(
                     apiRequest,
+                    containerRequestContext,
                     rows,
                     UPDATED_METADATA_COLLECTION_NAMES.isOn() ? "dimensions" : "rows",
                     null
