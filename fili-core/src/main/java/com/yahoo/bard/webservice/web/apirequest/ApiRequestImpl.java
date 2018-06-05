@@ -35,7 +35,6 @@ import com.yahoo.bard.webservice.table.LogicalTableDictionary;
 import com.yahoo.bard.webservice.table.TableIdentifier;
 import com.yahoo.bard.webservice.util.AllPagesPagination;
 import com.yahoo.bard.webservice.util.GranularityParseException;
-import com.yahoo.bard.webservice.util.Pagination;
 import com.yahoo.bard.webservice.web.ApiFilter;
 import com.yahoo.bard.webservice.web.BadApiRequestException;
 import com.yahoo.bard.webservice.web.BadFilterException;
@@ -46,7 +45,6 @@ import com.yahoo.bard.webservice.web.FilterOperation;
 import com.yahoo.bard.webservice.web.ResponseFormatType;
 import com.yahoo.bard.webservice.web.TimeMacro;
 import com.yahoo.bard.webservice.web.filters.ApiFilters;
-import com.yahoo.bard.webservice.web.util.PaginationLink;
 import com.yahoo.bard.webservice.web.util.PaginationParameters;
 
 import org.joda.time.DateTime;
@@ -69,15 +67,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Link;
 import javax.ws.rs.core.PathSegment;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
 
 /**
  * API Request. Abstract class offering default implementations for the common components of API request objects.
@@ -100,8 +92,6 @@ public abstract class ApiRequestImpl implements ApiRequest {
 
     protected final ResponseFormatType format;
     protected final Optional<PaginationParameters> paginationParameters;
-    protected final Response.ResponseBuilder builder;
-    protected Pagination<?> pagination;
     protected final long asyncAfter;
 
     /**
@@ -125,7 +115,6 @@ public abstract class ApiRequestImpl implements ApiRequest {
     ) throws BadApiRequestException {
         this.format = generateAcceptFormat(format);
         this.paginationParameters = generatePaginationParameters(perPage, page);
-        this.builder = Response.status(Response.Status.OK);
         this.asyncAfter = generateAsyncAfter(
                 asyncAfter == null ?
                         SYSTEM_CONFIG.getStringProperty(SYSTEM_CONFIG.getPackageVariableName("default_asyncAfter")) :
@@ -159,18 +148,15 @@ public abstract class ApiRequestImpl implements ApiRequest {
      * @param format  The format of the response
      * @param asyncAfter  How long the user is willing to wait for a synchronous request, in milliseconds
      * @param paginationParameters  The parameters used to describe pagination
-     * @param builder  The response builder for this request
      */
     protected ApiRequestImpl(
             ResponseFormatType format,
             long asyncAfter,
-            Optional<PaginationParameters> paginationParameters,
-            Response.ResponseBuilder builder
+            Optional<PaginationParameters> paginationParameters
     ) {
         this.format = format;
         this.asyncAfter = asyncAfter;
         this.paginationParameters = paginationParameters;
-        this.builder = builder;
     }
 
     /**
@@ -690,73 +676,13 @@ public abstract class ApiRequestImpl implements ApiRequest {
     }
 
     @Override
-    public Pagination<?> getPagination() {
-        return pagination;
-    }
-
-    @Override
     public long getAsyncAfter() {
         return asyncAfter;
     }
 
     @Override
-    public Response.ResponseBuilder getBuilder() {
-        return builder;
-    }
-
-    @Override
     public PaginationParameters getDefaultPagination() {
         return DEFAULT_PAGINATION;
-    }
-
-    /**
-     * Add page links to the header of the response builder.
-     *
-     * @param link  The type of the link to add.
-     * @param uriInfo The uri info for building page links
-     * @param pages  The paginated set of results containing the pages being linked to.
-     */
-    protected void addPageLink(PaginationLink link, UriInfo uriInfo, Pagination<?> pages) {
-        link.getPage(pages).ifPresent(page -> addPageLink(link, uriInfo, page));
-    }
-
-    /**
-     * Add page links to the header of the response builder.
-     *
-     * @param link  The type of the link to add.
-     * @param uriInfo The uri info for building page links
-     * @param pageNumber  Number of the page to add the link for.
-     */
-    protected void addPageLink(PaginationLink link, UriInfo uriInfo, int pageNumber) {
-        UriBuilder uriBuilder = uriInfo.getRequestUriBuilder().replaceQueryParam("page", pageNumber);
-        builder.header(HttpHeaders.LINK, Link.fromUriBuilder(uriBuilder).rel(link.getHeaderName()).build());
-    }
-
-
-    @Deprecated
-    @Override
-    public <T> Stream<T> getPage(Collection<T> data, UriInfo uriInfo) {
-        return getPage(
-                new AllPagesPagination<>(data, getPaginationParameters().orElse(getDefaultPagination())),
-                uriInfo
-        );
-    }
-
-    /**
-     * Add links to the response builder and return a stream with the requested page from the raw data.
-     *
-     * @param <T>  The type of the collection elements
-     * @param pagination  The pagination object
-     *
-     * @return A stream corresponding to the requested page.
-     */
-    @Override
-    public <T> Stream<T> getPage(Pagination<T> pagination, UriInfo uriInfo) {
-        this.pagination = pagination;
-
-        Arrays.stream(PaginationLink.values()).forEachOrdered(link -> addPageLink(link, uriInfo, pagination));
-
-        return pagination.getPageOfData().stream();
     }
 
     /**

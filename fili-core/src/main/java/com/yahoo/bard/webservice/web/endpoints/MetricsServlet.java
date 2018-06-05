@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -130,15 +129,10 @@ public class MetricsServlet extends EndpointServlet {
                 apiRequest = (MetricsApiRequestImpl) requestMapper.apply(apiRequest, containerRequestContext);
             }
 
-            Stream<Map<String, String>> result = apiRequest.getPage(
-                    getLogicalMetricListSummaryView(apiRequest.getMetrics(), uriInfo),
-                    uriInfo
-            );
-
-            Response response = formatResponse(
+            Response response = formatAndPaginateResponse(
                     apiRequest,
                     containerRequestContext,
-                    result,
+                    getLogicalMetricListSummaryView(apiRequest.getMetrics(), uriInfo),
                     UPDATED_METADATA_COLLECTION_NAMES.isOn() ? "metrics" : "rows",
                     null
             );

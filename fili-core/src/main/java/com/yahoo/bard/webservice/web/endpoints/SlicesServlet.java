@@ -24,9 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -129,13 +127,14 @@ public class SlicesServlet extends EndpointServlet {
             if (requestMapper != null) {
                 apiRequest = (SlicesApiRequestImpl) requestMapper.apply(apiRequest, containerRequestContext);
             }
+            /*
+            Stream<Map<String, String>> result = apiRequest.paginate(apiRequest.getSlices(), uriInfo);
+            */
 
-            Stream<Map<String, String>> result = apiRequest.getPage(apiRequest.getSlices(), uriInfo);
-
-            Response response = formatResponse(
+            Response response = formatAndPaginateResponse(
                     apiRequest,
                     containerRequestContext,
-                    result,
+                    apiRequest.getSlices(),
                     UPDATED_METADATA_COLLECTION_NAMES.isOn() ? "slices" : "rows",
                     null
             );

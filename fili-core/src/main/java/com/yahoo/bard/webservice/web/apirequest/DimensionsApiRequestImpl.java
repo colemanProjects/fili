@@ -90,18 +90,16 @@ public class DimensionsApiRequestImpl extends ApiRequestImpl implements Dimensio
      *
      * @param format  Format of the request
      * @param paginationParameters  Pagination info for the request
-     * @param builder  A response builder for the request
      * @param dimensions  Desired dimensions of the request
      * @param filters  Filters applied to the request
      */
     private DimensionsApiRequestImpl(
             ResponseFormatType format,
             Optional<PaginationParameters> paginationParameters,
-            Response.ResponseBuilder builder,
             Iterable<Dimension> dimensions,
             Iterable<ApiFilter> filters
     ) {
-        super(format, SYNCHRONOUS_ASYNC_AFTER_VALUE, paginationParameters, builder);
+        super(format, SYNCHRONOUS_ASYNC_AFTER_VALUE, paginationParameters);
         this.dimensions = Sets.newLinkedHashSet(dimensions);
         this.filters = Sets.newLinkedHashSet(filters);
     }
@@ -183,27 +181,27 @@ public class DimensionsApiRequestImpl extends ApiRequestImpl implements Dimensio
 
     @Override
     public DimensionsApiRequest withFormat(ResponseFormatType format) {
-        return new DimensionsApiRequestImpl(format, paginationParameters, builder, dimensions, filters);
+        return new DimensionsApiRequestImpl(format, paginationParameters, dimensions, filters);
     }
 
     @Override
     public DimensionsApiRequest withPaginationParameters(Optional<PaginationParameters> paginationParameters) {
-        return new DimensionsApiRequestImpl(format, paginationParameters, builder, dimensions, filters);
+        return new DimensionsApiRequestImpl(format, paginationParameters, dimensions, filters);
     }
 
     @Override
     public DimensionsApiRequest withBuilder(Response.ResponseBuilder builder) {
-        return new DimensionsApiRequestImpl(format, paginationParameters, builder, dimensions, filters);
+        return new DimensionsApiRequestImpl(format, paginationParameters, dimensions, filters);
     }
 
     @Override
     public DimensionsApiRequest withDimensions(LinkedHashSet<Dimension> dimensions) {
-        return new DimensionsApiRequestImpl(format, paginationParameters, builder, dimensions, filters);
+        return new DimensionsApiRequestImpl(format, paginationParameters, dimensions, filters);
     }
 
     @Override
     public DimensionsApiRequest withFilters(Set<ApiFilter> filters) {
-        return new DimensionsApiRequestImpl(format, paginationParameters, builder, dimensions, filters);
+        return new DimensionsApiRequestImpl(format, paginationParameters, dimensions, filters);
     }
 
     @Override

@@ -19,7 +19,6 @@ class TestingDataApiRequestImpl extends DataApiRequestImpl {
         super(
                 (ResponseFormatType) null,
                 (Optional<PaginationParameters>) null,
-                null,
                 (LogicalTable) null,
                 DefaultTimeGrain.DAY,
                 (Set<Dimension>) [] as Set,

@@ -23,9 +23,8 @@ import com.yahoo.bard.webservice.web.RequestMapper;
 import com.yahoo.bard.webservice.web.RequestValidationException;
 import com.yahoo.bard.webservice.web.ResponseFormatResolver;
 import com.yahoo.bard.webservice.web.TableFullViewProcessor;
-import com.yahoo.bard.webservice.web.TableView;
-import com.yahoo.bard.webservice.web.apirequest.TablesApiRequest;
 import com.yahoo.bard.webservice.web.apirequest.HavingGenerator;
+import com.yahoo.bard.webservice.web.apirequest.TablesApiRequest;
 import com.yahoo.bard.webservice.web.apirequest.TablesApiRequestImpl;
 import com.yahoo.bard.webservice.web.util.BardConfigResources;
 
@@ -187,13 +186,10 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
                 );
             }
 
-            Stream<Map<String, String>> result = tablesApiRequestImpl.getPage(
-                    getLogicalTableListSummaryView(tablesApiRequestImpl.getTables(), uriInfo), uriInfo);
-
-            Response response = formatResponse(
+            Response response = formatAndPaginateResponse(
                     tablesApiRequestImpl,
                     containerRequestContext,
-                    result,
+                    getLogicalTableListSummaryView(tablesApiRequestImpl.getTables(), uriInfo),
                     UPDATED_METADATA_COLLECTION_NAMES.isOn() ? "tables" : "rows",
                     null
             );
@@ -417,14 +413,10 @@ public class TablesServlet extends EndpointServlet implements BardConfigResource
 
             TableFullViewProcessor fullViewProcessor = new TableFullViewProcessor();
 
-            Stream<TableView> paginatedResult = tablesApiRequestImpl.getPage(
-                    fullViewProcessor.formatTables(tablesApiRequestImpl.getTables(), uriInfo),
-                    uriInfo
-            );
-            Response response = formatResponse(
+            Response response = formatAndPaginateResponse(
                     tablesApiRequestImpl,
                     containerRequestContext,
-                    paginatedResult,
+                    fullViewProcessor.formatTables(tablesApiRequestImpl.getTables(), uriInfo),
                     "tables",
                     null
             );

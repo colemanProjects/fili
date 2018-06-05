@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -38,7 +37,6 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 
 /**
  * Web service endpoint to return the current status of feature flags.
@@ -140,12 +138,10 @@ public class FeatureFlagsServlet extends EndpointServlet {
                     .map(flag -> new FeatureFlagEntry(flag.getName(), flag.isOn()))
                     .collect(Collectors.toList());
 
-            Stream<FeatureFlagEntry> result = apiRequest.getPage(status, containerRequestContext.getUriInfo());
-
-            Response response = formatResponse(
+            Response response = formatAndPaginateResponse(
                     apiRequest,
                     containerRequestContext,
-                    result,
+                    status,
                     UPDATED_METADATA_COLLECTION_NAMES.isOn() ? "feature flags" : "rows",
                     Arrays.asList("name", "value")
             );
@@ -167,7 +163,6 @@ public class FeatureFlagsServlet extends EndpointServlet {
      *
      * @param flagName The feature flag
      * @param format  The format to return results in
-     * @param uriInfo  The injected UriInfo
      *
      * @return Response Format:
      * <pre><code>

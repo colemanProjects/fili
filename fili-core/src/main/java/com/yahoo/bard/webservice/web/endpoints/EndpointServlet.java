@@ -5,12 +5,17 @@ package com.yahoo.bard.webservice.web.endpoints;
 import static com.yahoo.bard.webservice.web.DefaultResponseFormatType.CSV;
 
 import com.yahoo.bard.webservice.application.ObjectMappersSuite;
+import com.yahoo.bard.webservice.util.AllPagesPagination;
+import com.yahoo.bard.webservice.util.Pagination;
 import com.yahoo.bard.webservice.web.CsvResponse;
 import com.yahoo.bard.webservice.web.JsonResponse;
 import com.yahoo.bard.webservice.web.apirequest.ApiRequest;
+import com.yahoo.bard.webservice.web.apirequest.PageLinkBuilder;
 import com.yahoo.bard.webservice.web.util.ResponseUtils;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.inject.Inject;
@@ -28,6 +33,22 @@ public abstract class EndpointServlet {
 
     protected final ObjectMappersSuite objectMappers;
     private final ResponseUtils responseUtils;
+    private final Supplier<Response.ResponseBuilder> responseBuilderSupplier;
+
+
+    /**
+     * Constructor.
+     *
+     * @param objectMappers  Shared JSON tools
+     */
+    public EndpointServlet(
+            ObjectMappersSuite objectMappers,
+            Supplier<Response.ResponseBuilder> responseBuilderSupplier
+    ) {
+        this.objectMappers = objectMappers;
+        this.responseUtils = new ResponseUtils();
+        this.responseBuilderSupplier = responseBuilderSupplier;
+    }
 
     /**
      * Constructor.
@@ -36,8 +57,7 @@ public abstract class EndpointServlet {
      */
     @Inject
     public EndpointServlet(ObjectMappersSuite objectMappers) {
-        this.objectMappers = objectMappers;
-        this.responseUtils = new ResponseUtils();
+        this(objectMappers, () -> Response.status(Response.Status.OK));
     }
 
     /**
@@ -54,6 +74,8 @@ public abstract class EndpointServlet {
      */
     protected <T> Response formatResponse(
             ApiRequest apiRequest,
+            Response.ResponseBuilder builder,
+            Pagination pagination,
             ContainerRequestContext containerRequestContext,
             Stream<T> rows,
             String jsonName,
@@ -61,29 +83,26 @@ public abstract class EndpointServlet {
     ) {
         UriInfo uriInfo = containerRequestContext.getUriInfo();
         StreamingOutput output;
-        Response.ResponseBuilder builder;
         if (CSV.accepts(apiRequest.getFormat().toString())) {
-            builder = apiRequest.getBuilder()
-                    .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=utf-8")
+            builder.header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=utf-8")
                     .header(
                             HttpHeaders.CONTENT_DISPOSITION,
                             responseUtils.getCsvContentDispositionValue(containerRequestContext)
                     );
             output = new CsvResponse<>(
                     rows,
-                    apiRequest.getPagination(),
+                    pagination,
                     uriInfo,
                     csvColumnNames,
                     objectMappers
             ).getResponseStream();
         } else {
             // JSON is the default
-            builder = apiRequest.getBuilder()
-                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON + "; charset=utf-8");
+            builder.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON + "; charset=utf-8");
 
             output = new JsonResponse<>(
                     rows,
-                    apiRequest.getPagination(),
+                    pagination,
                     containerRequestContext.getUriInfo(),
                     jsonName,
                     objectMappers
@@ -92,4 +111,118 @@ public abstract class EndpointServlet {
         }
         return builder.entity(output).build();
     }
+
+    /**
+     * Format and build the response as JSON or CSV.
+     *
+     * @param apiRequest  The api request object
+     * @param containerRequestContext  The context of the http request
+     * @param rows  The stream that describes the data to be formatted
+     * @param jsonName  Top-level title for the JSON data
+     * @param csvColumnNames  Header for the CSV data
+     * @param <T> The type of rows being processed
+     *
+     * @return The updated response builder with the new link header added
+     */
+    protected <T> Response formatAndPaginateResponse(
+            ApiRequest apiRequest,
+            ContainerRequestContext containerRequestContext,
+            Collection<T> rows,
+            String jsonName,
+            List<String> csvColumnNames
+    ) {
+        UriInfo uriInfo = containerRequestContext.getUriInfo();
+
+        Pagination<T> pagination;
+        pagination = new AllPagesPagination<>(
+                rows,
+                apiRequest.getPaginationParameters().orElse(apiRequest.getDefaultPagination())
+        );
+
+
+        Response.ResponseBuilder builder = responseBuilderSupplier.get();
+
+        Stream<T> stream = PageLinkBuilder.paginate(builder, pagination, uriInfo);
+        Response.ResponseBuilder responseBuilder = Response.status(Response.Status.OK);
+
+        Response response = formatResponse(
+                apiRequest,
+                responseBuilder,
+                pagination,
+                containerRequestContext,
+                stream,
+                jsonName,
+                csvColumnNames
+        );
+        return response;
+    }
+
+    /**
+     * Format and build the response as JSON or CSV.
+     *
+     * @param apiRequest  The api request object
+     * @param containerRequestContext  The context of the http request
+     * @param pagination  The pagination for this stream of records
+     * @param jsonName  Top-level title for the JSON data
+     * @param csvColumnNames  Header for the CSV data
+     * @param <T> The type of rows being processed
+     *
+     * @return The updated response builder with the new link header added
+     */
+    protected <T> Response formatAndPaginateResponse(
+            ApiRequest apiRequest,
+            ContainerRequestContext containerRequestContext,
+            Pagination pagination,
+            String jsonName,
+            List<String> csvColumnNames
+    ) {
+        UriInfo uriInfo = containerRequestContext.getUriInfo();
+
+        Response.ResponseBuilder builder = responseBuilderSupplier.get();
+
+        Stream<T> stream = PageLinkBuilder.paginate(builder, pagination, uriInfo);
+        Response.ResponseBuilder responseBuilder = Response.status(Response.Status.OK);
+
+        Response response = formatResponse(
+                apiRequest,
+                responseBuilder,
+                pagination,
+                containerRequestContext,
+                stream,
+                jsonName,
+                csvColumnNames
+        );
+        return response;
+    }
+
+    /**
+     * Format and build the response as JSON or CSV.
+     *
+     * @param apiRequest  The api request object
+     * @param containerRequestContext  The context of the http request
+     * @param rows  The stream that describes the data to be formatted
+     * @param jsonName  Top-level title for the JSON data
+     * @param csvColumnNames  Header for the CSV data
+     * @param <T> The type of rows being processed
+     *
+     * @return The updated response builder with the new link header added
+     *
+    protected <T> Response formatResponse(
+            ApiRequest apiRequest,
+            ContainerRequestContext containerRequestContext,
+            Pagination<T> pagination,
+            Stream<T> rows,
+            String jsonName,
+            List<String> csvColumnNames
+    ) {
+        return formatResponse(
+                apiRequest,
+                apiRequest.getBuilder(),
+                pagination,
+                containerRequestContext,
+                rows,
+                jsonName,
+                csvColumnNames
+        );
+    }*/
 }
