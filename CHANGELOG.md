@@ -15,6 +15,10 @@ pull request if there was one.
 
 ### Changed:
 
+- [Let DimensionApiRequestMapper throw RequestValidationException instead of BadApiRequestException](https://github.com/yahoo/fili/pull/715)
+    * `DimensionApiRequestMapper.apply()` is made to obey the interfact contract by throwing
+      `RequestValidationException` instead of ``BadApiRequestException``
+
 - [Abort request when too many Druid filters are generated](https://github.com/yahoo/fili/pull/690)
     * In order to avoid Druid queries with too much filters on high-cardinality dimension, Fili sets a upper limit
       on the number of filters and aborts requests if the limit is exceeded.
