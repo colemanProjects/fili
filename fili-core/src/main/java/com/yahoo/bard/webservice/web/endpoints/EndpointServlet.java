@@ -194,35 +194,4 @@ public abstract class EndpointServlet {
         );
         return response;
     }
-
-    /**
-     * Format and build the response as JSON or CSV.
-     *
-     * @param apiRequest  The api request object
-     * @param containerRequestContext  The context of the http request
-     * @param rows  The stream that describes the data to be formatted
-     * @param jsonName  Top-level title for the JSON data
-     * @param csvColumnNames  Header for the CSV data
-     * @param <T> The type of rows being processed
-     *
-     * @return The updated response builder with the new link header added
-     *
-    protected <T> Response formatResponse(
-            ApiRequest apiRequest,
-            ContainerRequestContext containerRequestContext,
-            Pagination<T> pagination,
-            Stream<T> rows,
-            String jsonName,
-            List<String> csvColumnNames
-    ) {
-        return formatResponse(
-                apiRequest,
-                apiRequest.getBuilder(),
-                pagination,
-                containerRequestContext,
-                rows,
-                jsonName,
-                csvColumnNames
-        );
-    }*/
 }

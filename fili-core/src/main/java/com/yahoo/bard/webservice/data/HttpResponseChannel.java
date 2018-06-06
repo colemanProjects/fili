@@ -35,7 +35,7 @@ public class HttpResponseChannel implements Observer<PreResponse> {
      *
      * @param asyncResponse  An async response that we can use to respond asynchronously
      * @param apiRequest  Api request object with all the associated info with it
-     * @param containerRequestContext The context of the container request
+     * @param containerRequestContext The container for jersey request processing objects
      * @param httpResponseMaker  Helper class instance to prepare the response object
      *
      */

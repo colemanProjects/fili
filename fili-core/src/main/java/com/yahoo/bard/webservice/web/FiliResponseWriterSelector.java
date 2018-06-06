@@ -14,7 +14,7 @@ import java.util.Optional;
  * format type in the ApiRequest. It's initialized with three format-writer mapping: CSV, Json and JsonApi.
  */
 public class FiliResponseWriterSelector implements ResponseWriterSelector {
-    private final Map<DefaultResponseFormatType, ResponseWriter> writers;
+    private final Map<ResponseFormatType, ResponseWriter> writers;
 
     /**
      * Constructor for default writer selector. Initialize format to writer mapping.
@@ -55,7 +55,7 @@ public class FiliResponseWriterSelector implements ResponseWriterSelector {
      * @param type  Custom format type.
      * @param writer Writer which should be used to do serialization with the type.
      */
-    public void addWriter(DefaultResponseFormatType type, ResponseWriter writer) {
+    public void addWriter(ResponseFormatType type, ResponseWriter writer) {
         writers.put(type, writer);
     }
 }

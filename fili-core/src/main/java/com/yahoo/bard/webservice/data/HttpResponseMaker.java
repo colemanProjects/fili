@@ -78,7 +78,7 @@ public class HttpResponseMaker {
      *
      * @param preResponse  PreResponse object which contains result set, response context and headers
      * @param apiRequest  ApiRequest object which contains request related information
-     * @param containerRequestContext The context of the incoming request
+     * @param containerRequestContext The container for jersey request processing objects
      *
      * @return Completely built response with headers and result set
      */
@@ -112,7 +112,7 @@ public class HttpResponseMaker {
      * @param resultSet  The result set being processed
      * @param responseContext  A meta data container for the state gathered by the web container
      * @param apiRequest  ApiRequest object which contains request related information
-     * @param containerRequestContext The context of the container request being processed
+     * @param containerRequestContext The container for jersey request processing objects
      *
      * @return Build response with requested format and associated meta data info.
      */

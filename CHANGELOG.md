@@ -15,6 +15,18 @@ pull request if there was one.
 
 ### Changed:
 
+- [Moved ResponseFormatType from Singleton enum to interface with enum imp](https://github.com/yahoo/fili/issues/711)
+    * Refactored ResponseFormatType to allow expansion via additional interface implementors
+    * Replaced equality based matching with 'accepts' model
+
+- [Restructured Report Building out of ApiRequest](https://github.com/yahoo/fili/issues/711)
+    * Pushed UriInfo used to produce `PaginationMapper` into `RequestContext`
+    * Renamed 'getPage' to 'paginate' and refactored off `ApiRequest` and into `PageLinkBuilder`
+    * Moved pagination mostly out of individual servlet classes and into `EndpointServlet`
+    * Initialized per request `Response.ResponseBuilder` in EndpointServlet rather than `ApiRequestImpl` constructor
+    * Simplified injected classes that took both `UrlInfo` and `ContainerRequestContext` to get the one from inside the other.
+    * Pushed entire container request context to content disposition building code (prelude to https://github.com/yahoo/fili/issues/709 )
+
 - [Abort request when too many Druid filters are generated](https://github.com/yahoo/fili/pull/690)
     * In order to avoid Druid queries with too much filters on high-cardinality dimension, Fili sets a upper limit
       on the number of filters and aborts requests if the limit is exceeded.
@@ -30,7 +42,8 @@ pull request if there was one.
 
 ### Deprecated:
 
-
+- [Undeprecated pagination by collection](https://github.com/yahoo/fili/issues/711)
+    * Since we seem to be in no hurry to switch to heavier reliance on streams. (also renamed paginate and moved to `PageLinkBuilder`)
 
 ### Fixed:
 
