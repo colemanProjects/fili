@@ -101,11 +101,11 @@ class QueryBuildingTestingResources {
 
     public DataSourceMetadataService metadataService
 
-    public QueryBuildingTestingResources() {
+    QueryBuildingTestingResources() {
         init()
     }
 
-    public QueryBuildingTestingResources init() {
+    QueryBuildingTestingResources init() {
 
         DateTimeZone.setDefault(UTC)
         def ages = ["1": "0-10", "2": "11-14", "3": "14-29", "4": "30-40", "5": "41-59", "6": "60+"]

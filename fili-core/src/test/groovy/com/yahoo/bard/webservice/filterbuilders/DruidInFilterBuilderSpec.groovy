@@ -61,6 +61,15 @@ class DruidInFilterBuilderSpec extends Specification {
         filterBuilder.buildFilters([:]) == null
     }
 
+    def "Combinations of positive and negative API filters are consolidated into 2 filters"() {
+        when:
+        Filter filter = filterBuilder.buildFilters([(resources.d3): apiFilters.collect { it.value } as Set])
+
+        then:
+        new HashSet<>(filter.fields.get(0).values) == ["2", "3"] as HashSet
+        new HashSet<>(filter.fields.get(1).field.values) == ["3", "5", "6"] as HashSet
+    }
+
     @Unroll
     def "#filterString is a #outerFilterType-filter on #dimension, with values = #values"() {
         setup: "Init. API filters"

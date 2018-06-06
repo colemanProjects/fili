@@ -121,7 +121,7 @@ class LookupDimensionGroupingFilteringDataServletSpec extends BaseDataServletCom
                     {
                         "type": "in",
                         "dimension":"sex",
-                        "values":["sex2","sex1"]
+                        "values":["sex1","sex2"]
                     },
                     {
                         "type": "in",

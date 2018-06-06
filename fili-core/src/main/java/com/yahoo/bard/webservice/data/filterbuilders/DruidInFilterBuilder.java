@@ -1,4 +1,4 @@
-// Copyright 2016 Yahoo Inc.
+// Copyright 2018 Yahoo Inc.
 // Licensed under the terms of the Apache license. Please see LICENSE.md file distributed with this work for terms.
 package com.yahoo.bard.webservice.data.filterbuilders;
 
@@ -9,35 +9,43 @@ import com.yahoo.bard.webservice.druid.model.filter.Filter;
 import com.yahoo.bard.webservice.druid.model.filter.InFilter;
 import com.yahoo.bard.webservice.druid.model.filter.NotFilter;
 import com.yahoo.bard.webservice.web.ApiFilter;
-import com.yahoo.bard.webservice.web.FilterOperation;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * A DruidInFilterBuilder builds a conjunction of in-filters for each Dimension, where each in-filter corresponds to a
- * filter term. So, the filter terms on dimension {@code category}:
+ * A {@code DruidInFilterBuilder} builds a conjunction of a in-filter and another in-filter wrapped in a not-filter.
  * <p>
- * {@code category|id-in[finance,sports],category|desc-contains[baseball]}
+ * {@code DruidInFilterBuilder} sees API filters as in two categories
+ * <ol>
+ *     <li>
+ *         positive filters whose API filter operations are one of the following:
+ *         <ul>
+ *             <li> {@link com.yahoo.bard.webservice.web.FilterOperation#in}
+ *             <li> {@link com.yahoo.bard.webservice.web.FilterOperation#startswith}
+ *             <li> {@link com.yahoo.bard.webservice.web.FilterOperation#contains}
+ *             <li> {@link com.yahoo.bard.webservice.web.FilterOperation#eq}
+ *         </ul>
+ *     <li> negative filters whose API filter operation is {@link com.yahoo.bard.webservice.web.FilterOperation#notin}
+ * </ol>
+ * Dimension row values matching the positive API filters are grouped in the single in-filter. Those values matching the
+ * negative API filters are grouped in the other in-filter wrapped in the not-filter.
  * <p>
- * are translated into:
- * <pre>
- * {@code
- *     {
- *         "type": "in",
- *         "dimension": "category",
- *         "values": ["finance", "sports"]
- *     }
- * }
- * </pre>
- * Each filter term is resolved independently of the other filter terms.
+ * For example, suppose a dimension {@code D} has dimension rows {@code 1}, {@code 2}, {@code 3}, {@code 4}, {@code 5}.
+ * A filter clause in in a request like {@code D|id-in[1, 2],D|id-notin[4, 5]} results in an and-filter by
+ * {@code DruidInFilterBuilder}: {@code AND(IN(1, 2), NOT(IN(4, 5)))}. This and-filter is a conjunction of a in-filter
+ * and another in-filter wrapped in a not-filter.
+ * <p>
+ * Compared with {@link DruidOrFilterBuilder}, the advantage of {@code DruidInFilterBuilder} is reducing the number of
+ * Druid filters in a single Druid query. {@code DruidInFilterBuilder} is an enhancement of the
+ * {@link DruidOrFilterBuilder} and is the default Druid filter builder in Fili.
  */
 public class DruidInFilterBuilder extends ConjunctionDruidFilterBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(DruidInFilterBuilder.class);
@@ -47,34 +55,42 @@ public class DruidInFilterBuilder extends ConjunctionDruidFilterBuilder {
             throws DimensionRowNotFoundException {
         LOG.trace("Building dimension filter using dimension: {} \n\n and set of filter: {}", dimension, filters);
 
-        List<Filter> inFilters = new ArrayList<>(); // A list with at most 2 in-filters(positive & negative)
-        Set<String> positiveInValues = new HashSet<>(); // contains values for positive in-filter
-        Set<String> negativeInValues = new HashSet<>(); // contains values for negative in-filter
+        List<Filter> inFilters = new ArrayList<>(); // A set with at most two in-filters(positive & negative)
 
-        for (ApiFilter filter : filters) {
-            ApiFilter normalizedFilter = filter;
-            if (normalizedFilter.getOperation().equals(FilterOperation.notin)) {
-                normalizedFilter = filter.withOperation(FilterOperation.in);
-            }
+        // split ApiFilters into two groups: positive filters & negative filters
+        Pair<Set<ApiFilter>, Set<ApiFilter>> splittedFilters = splitApiFilters(filters);
+        Set<ApiFilter> positiveFilters = splittedFilters.getLeft();
+        Set<ApiFilter> negativeFilters = negateNegativeFilters(splittedFilters.getRight()).collect(Collectors.toSet());
 
-            List<String> values = getFilteredDimensionRows(dimension, Collections.singleton(normalizedFilter)).stream()
-                    .map(row -> row.get(dimension.getKey()))
-                    .collect(Collectors.toList());
+        // search for matched values of the positive filter by sending all of the filters down to search provider once
+        List<String> inValues = positiveFilters.isEmpty()
+                ? Collections.emptyList()
+                : getFilteredDimensionRowValues(dimension, positiveFilters);
 
-            if (normalizedFilter == filter) {
-                positiveInValues.addAll(values);
-            } else {
-                negativeInValues.addAll(values);
-            }
+        // search for matched values of the negative filter by sending each filter down to search provider one-by-one
+        List<String> notInValues = negativeFilters.stream()
+                .map(apiFilter -> {
+                    try {
+                        return getFilteredDimensionRowValues(dimension, Collections.singleton(apiFilter));
+                    } catch (DimensionRowNotFoundException exception) {
+                        throw new RuntimeException(exception);
+                    }
+                })
+                .flatMap(List::stream)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // add a Druid in-filter out of the matched values of the positive filter
+        if (!inValues.isEmpty()) {
+            inFilters.add(new InFilter(dimension, inValues));
         }
 
-        if (!positiveInValues.isEmpty()) {
-            inFilters.add(new InFilter(dimension, new ArrayList<>(positiveInValues)));
-        }
-        if (!negativeInValues.isEmpty()) {
-            inFilters.add(new NotFilter(new InFilter(dimension, new ArrayList<>(negativeInValues))));
+        // build a Druid not-filter containing a in-filter out of the matched values of the negative filter
+        if (!notInValues.isEmpty()) {
+            inFilters.add(new NotFilter(new InFilter(dimension, notInValues)));
         }
 
+        // combine the two in-filters
         Filter newFilter = inFilters.size() == 1 ? inFilters.get(0) : new AndFilter(inFilters);
 
         LOG.trace("Filter: {}", newFilter);
