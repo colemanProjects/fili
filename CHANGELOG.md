@@ -16,7 +16,7 @@ pull request if there was one.
 ### Changed:
 
 - [Let DimensionApiRequestMapper throw RequestValidationException instead of BadApiRequestException](https://github.com/yahoo/fili/pull/715)
-    * `DimensionApiRequestMapper.apply()` is made to obey the interfact contract by throwing
+    * `DimensionApiRequestMapper.apply()` is made to obey the interface contract by throwing
       `RequestValidationException` instead of ``BadApiRequestException``
 
 - [Abort request when too many Druid filters are generated](https://github.com/yahoo/fili/pull/690)
